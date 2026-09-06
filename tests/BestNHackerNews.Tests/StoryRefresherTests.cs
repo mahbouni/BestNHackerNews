@@ -1,6 +1,7 @@
 ﻿using BestNHackerNews.Models;
 using BestNHackerNews.Services;
 using Microsoft.Extensions.Logging.Abstractions;
+using static BestNHackerNews.Tests.HackerNewsTestHelper;
 
 namespace BestNHackerNews.Tests;
 
@@ -13,7 +14,7 @@ public class StoryRefresherTests
         var client = new FakeHackerNewsClient
         {
             GetBestStoryIdsHandler = _ => Task.FromResult(new[] { 1, 2 }),
-            GetItemHandler = (id, _) => Task.FromResult<HackerNewsItem?>(MakeItem(id, score: id * 10)),
+            GetItemHandler = (id, _) => Task.FromResult<HackerNewsItem?>(CreateHackerNewsItem(id, score: id * 10)),
         };
 
         await CreateRefresher(client, cache).RunOnceAsync(CancellationToken.None);
@@ -33,13 +34,13 @@ public class StoryRefresherTests
             GetBestStoryIdsHandler = _ => Task.FromResult(new[] { 1, 2, 3 }),
             GetItemHandler = (id, _) => Task.FromResult<HackerNewsItem?>(id switch
             {
-                1 => MakeItem(1, score: 10),
-                2 => new HackerNewsItem { Id = 2, Score = 20, Deleted = true },
-                3 => new HackerNewsItem { Id = 3, Score = 30, Dead = true },
+                1 => CreateHackerNewsItem(1, score: 10),
+                2 => CreateHackerNewsItem(2, score: 20, deleted: true),
+                3 => CreateHackerNewsItem(3, score: 30, dead: true),
                 _ => throw new InvalidOperationException(),
             }),
         };
-
+         
         await CreateRefresher(client, cache).RunOnceAsync(CancellationToken.None);
 
         Assert.That(cache.LastSnapshot, Is.Not.Null);
@@ -69,7 +70,7 @@ public class StoryRefresherTests
             GetBestStoryIdsHandler = _ => Task.FromResult(new[] { 10, 20 }),
             GetItemHandler = (id, _) => id == 20
                 ? throw new HttpRequestException("boom")
-                : Task.FromResult<HackerNewsItem?>(MakeItem(id, score: 50)),
+                : Task.FromResult<HackerNewsItem?>(CreateHackerNewsItem(id, score: 50)),
         };
 
         await CreateRefresher(client, cache).RunOnceAsync(CancellationToken.None);
@@ -123,7 +124,7 @@ public class StoryRefresherTests
                     currentConcurrency--;
                 }
 
-                return MakeItem(id, score: id);
+                return CreateHackerNewsItem(id, score: id);
             },
         };
 
@@ -138,17 +139,6 @@ public class StoryRefresherTests
         var options = Microsoft.Extensions.Options.Options.Create(new HackerNewsOptions { MaxConcurrentRequests = maxConcurrent });
         return new StoryRefresher(client, cache, options, NullLogger<StoryRefresher>.Instance);
     }
-
-    private static HackerNewsItem MakeItem(int id, int score) => new()
-    {
-        Id = id,
-        Title = $"Story {id}",
-        Url = $"https://test.com/{id}",
-        By = "author",
-        Time = 123456789,
-        Score = score,
-        Descendants = 0,
-    };
 
     private class FakeStoryCache : IStoryCache
     {
