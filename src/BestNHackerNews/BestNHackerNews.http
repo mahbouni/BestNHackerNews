@@ -1,0 +1,6 @@
+@BestNHackerNews_HostAddress = http://localhost:5080
+
+GET {{BestNHackerNews_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
