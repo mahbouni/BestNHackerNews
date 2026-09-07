@@ -31,10 +31,10 @@ internal class StoryRefreshServiceTests
 
         public int CallCount => _callCount;
 
-        public Task RunOnceAsync(CancellationToken cancellationToken)
+        public Task<bool> RunOnceAsync(CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref _callCount);
-            return Task.CompletedTask;
+            return Task.FromResult(true);
         }
 
         public async Task WaitForCallsAsync(int count, TimeSpan timeout)

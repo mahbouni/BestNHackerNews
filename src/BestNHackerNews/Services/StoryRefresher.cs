@@ -12,12 +12,12 @@ public class StoryRefresher
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
 
-    public async Task RunOnceAsync(CancellationToken cancellationToken)
+    public async Task<bool> RunOnceAsync(CancellationToken cancellationToken)
     {
         if (!await _gate.WaitAsync(0, cancellationToken))
         {
             logger.LogInformation("Skipping refresh cycle; previous cycle is still running.");
-            return;
+            return false;
         }
 
         try
@@ -26,10 +26,12 @@ public class StoryRefresher
             var items = await FetchAllAsync(ids, cancellationToken);
             cache.SetSnapshot(items);
             logger.LogInformation("Refreshed story cache with {Count} stories.", items.Count);
+            return true;
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Refresh cycle failed; keeping previous snapshot.");
+            return false;
         }
         finally
         {

@@ -2,6 +2,6 @@
 {
     public interface IStoryRefresher
     {
-        Task RunOnceAsync(CancellationToken cancellationToken);
+        Task<bool> RunOnceAsync(CancellationToken cancellationToken);
     }
 }

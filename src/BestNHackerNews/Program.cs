@@ -33,11 +33,17 @@ app.UseHttpsRedirection();
 app.MapControllers();
 
 // Eager fetch: warm the cache before the app starts accepting requests, so no
-// caller ever sees an empty result due to the background job not having ticked yet.
+// caller ever sees an empty result. If this fails (e.g. Hacker News is unreachable),
+// fail startup rather than silently serving an empty cache.
 using (var scope = app.Services.CreateScope())
 {
     var refresher = scope.ServiceProvider.GetRequiredService<IStoryRefresher>();
-    await refresher.RunOnceAsync(CancellationToken.None);
+    var warmed = await refresher.RunOnceAsync(CancellationToken.None);
+    if (!warmed)
+    {
+        throw new InvalidOperationException(
+            "Failed to warm the story cache on startup; Hacker News may be unreachable.");
+    }
 }
 
 app.Run();

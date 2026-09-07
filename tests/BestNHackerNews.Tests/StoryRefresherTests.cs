@@ -17,8 +17,9 @@ public class StoryRefresherTests
             GetItemHandler = (id, _) => Task.FromResult<HackerNewsItem?>(CreateHackerNewsItem(id, score: id * 10)),
         };
 
-        await CreateRefresher(client, cache).RunOnceAsync(CancellationToken.None);
+        var result = await CreateRefresher(client, cache).RunOnceAsync(CancellationToken.None);
 
+        Assert.That(result, Is.True);
         Assert.That(cache.LastSnapshot, Is.Not.Null);
         Assert.That(cache.LastSnapshot!.Keys, Is.EquivalentTo(new[] { 1, 2 }));
         Assert.That(cache.LastSnapshot[1].Score, Is.EqualTo(10));
@@ -56,8 +57,9 @@ public class StoryRefresherTests
             GetBestStoryIdsHandler = _ => throw new HttpRequestException("boom"),
         };
 
-        await CreateRefresher(client, cache).RunOnceAsync(CancellationToken.None);
+        var result = await CreateRefresher(client, cache).RunOnceAsync(CancellationToken.None);
 
+        Assert.That(result, Is.False);
         Assert.That(cache.LastSnapshot, Is.Null);
     }
 
@@ -73,8 +75,9 @@ public class StoryRefresherTests
                 : Task.FromResult<HackerNewsItem?>(CreateHackerNewsItem(id, score: 50)),
         };
 
-        await CreateRefresher(client, cache).RunOnceAsync(CancellationToken.None);
+        var result = await CreateRefresher(client, cache).RunOnceAsync(CancellationToken.None);
 
+        Assert.That(result, Is.False);
         Assert.That(cache.LastSnapshot, Is.Null);
     }
 
@@ -89,8 +92,9 @@ public class StoryRefresherTests
         var refresher = CreateRefresher(client, new FakeStoryCache());
 
         var firstCycle = refresher.RunOnceAsync(CancellationToken.None);
-        await refresher.RunOnceAsync(CancellationToken.None);
+        var secondResult = await refresher.RunOnceAsync(CancellationToken.None);
 
+        Assert.That(secondResult, Is.False);
         Assert.That(client.GetBestStoryIdsCallCount, Is.EqualTo(1));
 
         idsGate.SetResult([]);
